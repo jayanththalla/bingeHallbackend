@@ -12,6 +12,10 @@ const razorpay = new Razorpay({
     key_secret: process.env.VITE_RAZORPAY_KEY_SECRET,
 });
 
+app.get('/', (req, res) => {
+    res.send('BingeHall Backend is running');
+});
+
 // Create a Razorpay order
 app.post('/api/create-order', async (req, res) => {
     try {
