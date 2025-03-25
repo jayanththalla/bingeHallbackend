@@ -4,7 +4,7 @@ import app from './api/create-order.js';
 
 const PORT = process.env.PORT || 5000;
 app.use(cors({
-    origin: 'https://your-frontend-url.onrender.com',
+    origin: 'https://bingehall.onrender.com/',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
