@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import process from 'process'
 import app from './api/create-order.js';
+import cors from 'cors';
 
 const PORT = process.env.PORT || 5000;
 app.use(cors({
