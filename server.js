@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import process from 'process'
-import app from './api/create-order';
+import app from './api/create-order.js';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
@@ -9,7 +9,7 @@ dotenv.config();
 
 // Single CORS configuration
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: 'https://bingehall.onrender.com/',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
