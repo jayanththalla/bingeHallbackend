@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import process from 'process'
-import app from './src/api/create-order.js';
+import app from './api/create-order.js';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
