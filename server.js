@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import process from 'process'
-import app from './api/create-order.js';
+import app from './src/api/create-order.js';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
@@ -93,13 +93,6 @@ app.post('/api/send-offline-booking-confirmation', async (req, res) => {
                 </div>
             `
         });
-        // Send email with timeout
-        const emailPromise = transporter.sendMail(mailOptions);
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Email timeout')), 10000)
-        );
-
-        await Promise.race([emailPromise, timeoutPromise]);
 
         res.status(200).json({ success: true });
     } catch (error) {
@@ -132,37 +125,43 @@ app.post('/api/send-online-booking-confirmation', async (req, res) => {
                     <div style="background-color: #f8f8f8; padding: 20px; border-radius: 5px; margin: 20px 0;">
                         <h3 style="color: #9f1d21; margin-top: 0;">Booking Summary</h3>
                         <ul style="list-style: none; padding: 0;">
-                            <li><strong>Theater:</strong> ${bookingDetails.summary.theater}</li>
+                            <li><strong>Theater:</strong> ${bookingDetails.theaterName}</li>
                             <li><strong>Date:</strong> ${bookingDetails.date}</li>
-                            <li><strong>Time:</strong> ${bookingDetails.summary.timeSlot}</li>
-                            <li><strong>Number of Guests:</strong> ${bookingDetails.guestCount}</li>
-                            ${bookingDetails.summary.decorations.length ? `
-                                <li><strong>Decorations:</strong> ${bookingDetails.summary.decorations.join(', ')}</li>
+                            <li><strong>Time:</strong> ${bookingDetails.timeSlot}</li>
+                            <li><strong>Number of Guests:</strong> ${bookingDetails.guestCount || 2}</li>
+                            ${bookingDetails.decorations?.length > 0 ? `
+                                <li><strong>Decorations:</strong> ${bookingDetails.decorations.map(id => {
+                const eventType = decorationOptions.find(d => d.id === id);
+                if (eventType) return eventType.name;
+                const addon = decorations.find(d => d.id === id);
+                return addon ? addon.name : 'None';
+            }).join(', ')}</li>
                             ` : ''}
-                            ${bookingDetails.summary.cake ? `
-                                <li><strong>Cake:</strong> ${bookingDetails.summary.cake}</li>
-                                ${bookingDetails.summary.cakeDetails.message ? `
-                                    <li><strong>Cake Message:</strong> "${bookingDetails.summary.cakeDetails.message}"</li>
+                            ${bookingDetails.cake?.id ? `
+                                <li><strong>Cake:</strong> ${cakeOptions.find(c => c.id === bookingDetails.cake.id)?.name || 'None'}</li>
+                                ${bookingDetails.cake.message ? `
+                                    <li><strong>Cake Message:</strong> "${bookingDetails.cake.message}"</li>
                                 ` : ''}
                             ` : ''}
-                            ${bookingDetails.summary.addOns.rose ? `<li><strong>Rose Package:</strong> ${bookingDetails.summary.addOns.rose}</li>` : ''}
-                            ${bookingDetails.summary.addOns.photography ? `<li><strong>Photography:</strong> ${bookingDetails.summary.addOns.photography}</li>` : ''}
+                            ${bookingDetails.addOns?.rose ? `
+                                <li><strong>Rose Package:</strong> ${roses.find(r => r.id === bookingDetails.addOns.rose)?.name || 'None'}</li>
+                            ` : ''}
+                            ${bookingDetails.addOns?.photography ? `
+                                <li><strong>Photography:</strong> ${photography.find(p => p.id === bookingDetails.addOns.photography)?.name || 'None'}</li>
+                            ` : ''}
                         </ul>
                         
                         <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px;">
                             <h4 style="color: #9f1d21; margin-bottom: 10px;">Price Breakdown</h4>
                             <ul style="list-style: none; padding: 0;">
-                                <li>Base Price: ₹${bookingDetails.summary.priceBreakdown.basePrice}</li>
-                                ${bookingDetails.summary.priceBreakdown.decorationsCost ? `<li>Decorations: ₹${bookingDetails.summary.priceBreakdown.decorationsCost}</li>` : ''}
-                                ${bookingDetails.summary.priceBreakdown.cakeCost ? `<li>Cake: ₹${bookingDetails.summary.priceBreakdown.cakeCost}</li>` : ''}
-                                ${bookingDetails.summary.priceBreakdown.addOnsCost ? `<li>Add-ons: ₹${bookingDetails.summary.priceBreakdown.addOnsCost}</li>` : ''}
+                                <li>Base Price: ₹${bookingDetails.totalPrice}</li>
                                 <li style="font-weight: bold; margin-top: 10px;">Total Amount Paid: ₹${bookingDetails.amountPaid}</li>
                             </ul>
                         </div>
                     </div>
                     
                     <div style="margin-top: 20px;">
-                        <p><strong>Transaction ID:</strong> ${bookingDetails.transactionId}</p>
+                        <p><strong>Transaction ID:</strong> ${bookingDetails.transactionId || 'N/A'}</p>
                         <p><strong>Payment Status:</strong> ${bookingDetails.paymentStatus}</p>
                     </div>
                     
@@ -210,23 +209,11 @@ app.post('/api/send-online-booking-confirmation', async (req, res) => {
             `
         };
 
-        // Send both emails with timeout
-        const sendEmailsWithTimeout = async () => {
-            const timeout = 10000; // 10 seconds timeout
-            const customerEmailPromise = Promise.race([
-                transporter.sendMail(customerMailOptions),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Customer email timeout')), timeout))
-            ]);
-
-            const adminEmailPromise = Promise.race([
-                transporter.sendMail(adminMailOptions),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Admin email timeout')), timeout))
-            ]);
-
-            await Promise.all([customerEmailPromise, adminEmailPromise]);
-        };
-
-        await sendEmailsWithTimeout();
+        // Send both emails
+        await Promise.all([
+            transporter.sendMail(customerMailOptions),
+            transporter.sendMail(adminMailOptions)
+        ]);
 
         res.status(200).json({
             success: true,
